@@ -6,12 +6,12 @@ using Google.Api.Gax.ResourceNames;
 
 namespace GCP.Extensions.Configuration.SecretManager
 {
-    public class KeyValueConfigurationProvider : ConfigurationProvider
+    public class GcpKeyValueSecretsConfigurationProvider : ConfigurationProvider
     {
         private readonly GoogleCredential _googleCredential;
         private readonly ServiceAccountCredential _serviceAccountCredential;
         public SecretManagerServiceClient SecretMangerClient { get; set; }
-        public string ListFilter { get; set; }
+        public string SecretNamePrefix { get; set; }
         public string ProjectId { get; set; }
 
         internal SecretManagerServiceClient BuildClient(ServiceAccountCredential credential) {
@@ -28,9 +28,17 @@ namespace GCP.Extensions.Configuration.SecretManager
             return result;
         }
 
-        public KeyValueConfigurationProvider(string listFilter, GoogleCredential googleCredential, string projectId)
+        internal string RemovePrefix(string value)
         {
-            this.ListFilter = listFilter;
+            if (string.IsNullOrEmpty(this.SecretNamePrefix)) { return value; }
+            int prefixLen = this.SecretNamePrefix.Length;
+            if (prefixLen < (value?.Length ?? 0)) { return value[prefixLen..]; }
+            return value;
+        }
+
+        public GcpKeyValueSecretsConfigurationProvider(string secretNamePrefix, GoogleCredential googleCredential, string projectId)
+        {
+            this.SecretNamePrefix = secretNamePrefix;
 
             _googleCredential = googleCredential ?? GoogleCredential.GetApplicationDefault();
             _serviceAccountCredential = _googleCredential.UnderlyingCredential as ServiceAccountCredential;
@@ -42,11 +50,16 @@ namespace GCP.Extensions.Configuration.SecretManager
         public override void Load()
         {
             ProjectName projectName = new ProjectName(ProjectId);
-            ListSecretsRequest request = new ListSecretsRequest() { ParentAsProjectName = projectName, Filter = (this.ListFilter ?? string.Empty) };
+            string prefix = string.IsNullOrEmpty(this.SecretNamePrefix) ? null : this.SecretNamePrefix.ToLower();
+            string filter = (null == prefix) ? string.Empty : $"name:{prefix}";
+
+            ListSecretsRequest request = new ListSecretsRequest() { ParentAsProjectName = projectName, Filter = filter};
             var secrets = this.SecretMangerClient.ListSecrets(request);
 
             foreach (var secret in secrets)
             {
+                if (!((null != prefix) || secret.SecretName.SecretId.ToLower().StartsWith(prefix))) { continue; }
+
                 ListSecretVersionsRequest versionsRequest = new ListSecretVersionsRequest() {
                     Filter = Helpers.FilterVersions_Enabled, ParentAsSecretName = secret.SecretName
                 };
@@ -55,38 +68,39 @@ namespace GCP.Extensions.Configuration.SecretManager
                 if (null == ver) { continue; }
 
                 var secretVersion = this.SecretMangerClient.AccessSecretVersion(ver.SecretVersionName);
-                string key = ReplacePathSeparator(secret.SecretName.SecretId);
+                string trimmedKey = RemovePrefix(secret.SecretName.SecretId);
+                string key = ReplacePathSeparator(trimmedKey);
                 string value = secretVersion?.Payload.Data.ToStringUtf8();
                 Set(key, value);
             }
         }
     }
 
-    public class KeyValueConfigurationSource : IConfigurationSource
+    public class GcpKeyValueSecretsConfigurationSource : IConfigurationSource
     {
         private readonly GoogleCredential _googleCredential;
-        private readonly string _listFilter;
+        private readonly string _secretNamePrefix;
         private readonly string _projectId;
 
-        public KeyValueConfigurationSource(string listFilter = null, GoogleCredential googleCredential = null, string projectId = null)
+        public GcpKeyValueSecretsConfigurationSource(string secretNamePrefix = null, GoogleCredential googleCredential = null, string projectId = null)
         {
             _googleCredential = googleCredential;
-            _listFilter = listFilter;
+            _secretNamePrefix = secretNamePrefix;
             _projectId = projectId;
         }
 
         public IConfigurationProvider Build(IConfigurationBuilder builder)
         {
-            return new KeyValueConfigurationProvider(_listFilter, _googleCredential, _projectId);
+            return new GcpKeyValueSecretsConfigurationProvider(_secretNamePrefix, _googleCredential, _projectId);
         }
     }
 
     public static class KeyValueConfigurationExtensions
     {
-        public static IConfigurationBuilder AddGcpKeyValueSecrets (this IConfigurationBuilder builder, string listFilter = null
+        public static IConfigurationBuilder AddGcpKeyValueSecrets (this IConfigurationBuilder builder, string secretNamePrefix = null
             , GoogleCredential googleCredential = null, string projectId = null)
         {
-            KeyValueConfigurationSource source = new KeyValueConfigurationSource(listFilter, googleCredential, projectId);
+            GcpKeyValueSecretsConfigurationSource source = new GcpKeyValueSecretsConfigurationSource(secretNamePrefix, googleCredential, projectId);
             return builder.Add(source);
         }
     }

@@ -7,7 +7,7 @@ using Google.Api.Gax.ResourceNames;
 
 namespace GCP.Extensions.Configuration.SecretManager
 {
-    public class JsonConfigurationProvider : JsonStreamConfigurationProvider
+    public class GcpJsonSecretsConfigurationProvider : JsonStreamConfigurationProvider
     {
         private readonly GoogleCredential _googleCredential;
         private readonly ServiceAccountCredential _serviceAccountCredential;
@@ -30,7 +30,7 @@ namespace GCP.Extensions.Configuration.SecretManager
             return result;
         }
 
-        public JsonConfigurationProvider(JsonConfigurationSource source, string secretListFilter, GoogleCredential googleCredential, string projectId) : base(source)
+        public GcpJsonSecretsConfigurationProvider(GcpJsonSecretsConfigurationSource source, string secretListFilter, GoogleCredential googleCredential, string projectId) : base(source)
         {
             this.ListFilter = secretListFilter;
 
@@ -63,13 +63,13 @@ namespace GCP.Extensions.Configuration.SecretManager
         }
     }
 
-    public class JsonConfigurationSource : JsonStreamConfigurationSource
+    public class GcpJsonSecretsConfigurationSource : JsonStreamConfigurationSource
     {
         private readonly GoogleCredential _googleCredential;
         private readonly string _listFilter;
         private readonly string _projectId;
 
-        public JsonConfigurationSource(string listFilter = null, GoogleCredential googleCredential = null, string projectId = null)
+        public GcpJsonSecretsConfigurationSource(string listFilter = null, GoogleCredential googleCredential = null, string projectId = null)
         {
             _googleCredential = googleCredential;
             _listFilter = listFilter;
@@ -78,7 +78,7 @@ namespace GCP.Extensions.Configuration.SecretManager
 
         public override IConfigurationProvider Build(IConfigurationBuilder builder)
         {
-            return new JsonConfigurationProvider(this, _listFilter, _googleCredential, _projectId);
+            return new GcpJsonSecretsConfigurationProvider(this, _listFilter, _googleCredential, _projectId);
         }
     }
 
@@ -87,7 +87,7 @@ namespace GCP.Extensions.Configuration.SecretManager
         public static IConfigurationBuilder AddGcpJsonSecrets (this IConfigurationBuilder builder, string listFilter = null
             , GoogleCredential googleCredential = null, string projectId = null)
         {
-            JsonConfigurationSource source = new JsonConfigurationSource(listFilter, googleCredential, projectId);
+            GcpJsonSecretsConfigurationSource source = new GcpJsonSecretsConfigurationSource(listFilter, googleCredential, projectId);
             return builder.Add(source);
         }
     }
