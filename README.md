@@ -10,6 +10,8 @@ When running outside cloud:
 
 Set ProjectId value to over-ride value from GoogleCredential, inside or outside of cloud.
 
+##### Important! Only the most recently created, ENABLED version of any secret will be used.
+
 ---
 ```
 // typical usage:
