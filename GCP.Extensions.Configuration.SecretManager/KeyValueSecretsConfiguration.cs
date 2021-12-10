@@ -14,7 +14,16 @@ namespace GCP.Extensions.Configuration.SecretManager
         public string SecretNamePrefix { get; set; }
         public string ProjectId { get; set; }
 
-        internal SecretManagerServiceClient BuildClient(ServiceAccountCredential credential) {
+        internal SecretManagerServiceClient BuildClient(ICredential credential, string projectId)
+        {
+            if (null == credential)
+            {
+                this.ProjectId = projectId ?? Helpers.GetProjectId();
+                return SecretManagerServiceClient.Create();
+            }
+            if (credential is ServiceAccountCredential sac) { this.ProjectId = projectId ?? sac.ProjectId ?? Helpers.GetProjectId(); }
+            else { this.ProjectId = projectId ?? Helpers.GetProjectId(); }
+
             var builder = new SecretManagerServiceClientBuilder
             {
                 TokenAccessMethod = credential.GetAccessTokenForRequestAsync
@@ -41,10 +50,8 @@ namespace GCP.Extensions.Configuration.SecretManager
             this.SecretNamePrefix = secretNamePrefix;
 
             _googleCredential = googleCredential ?? GoogleCredential.GetApplicationDefault();
-            _serviceAccountCredential = _googleCredential.UnderlyingCredential as ServiceAccountCredential;
 
-            this.ProjectId = projectId ?? _serviceAccountCredential.ProjectId;
-            this.SecretMangerClient = BuildClient(_serviceAccountCredential);
+            this.SecretMangerClient = BuildClient(_googleCredential.UnderlyingCredential, projectId);
         }
 
         public override void Load()
