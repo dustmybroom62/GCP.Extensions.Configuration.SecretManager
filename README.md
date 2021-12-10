@@ -10,13 +10,19 @@ When running outside cloud:
 
 Set ProjectId value to over-ride value from GoogleCredential, inside or outside of cloud.
 
+> Update (v3.1.1) ProjectId, when not specified, is auto-populated from:
+> 1. ServiceAccountCredential
+> 2. The GCP API ( Google.Api.Gax.Platform.Instance().ProjectId )  
+> 3. Environment variables ( "GOOGLE_CLOUD_PROJECT", "GCLOUD_PROJECT" ).
+
 ### Important! Only the most recently created, ENABLED version of any secret will be used.
 
 ---
 ```
 // typical usage:
 //   GoogleCredential will be created as GoogleCredential.GetApplicationDefault()
-//   ProjectId will be derived from GoogleCredential
+//   ProjectId will be derived from GoogleCredential if ServiceAccountCredential
+//   or environment otherwise.
 public static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
         .ConfigureAppConfiguration((hostContext, builder) => {
@@ -36,7 +42,8 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
 ---
 ```
 // build credential from existing configuration settings:
-//   ProjectId will be derived from GoogleCredential
+//   ProjectId will be derived from GoogleCredential if ServiceAccountCredential
+//   or environment otherwise.
 public static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
         .ConfigureAppConfiguration((hostContext, builder) => {

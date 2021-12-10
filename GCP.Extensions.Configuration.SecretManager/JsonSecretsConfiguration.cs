@@ -16,7 +16,15 @@ namespace GCP.Extensions.Configuration.SecretManager
         public string ListFilter { get; set; }
         public string ProjectId { get; set; }
 
-        internal SecretManagerServiceClient BuildClient(ServiceAccountCredential credential) {
+
+        internal SecretManagerServiceClient BuildClient(ICredential credential, string projectId) {
+            if (null == credential) {
+                this.ProjectId = projectId ?? Helpers.GetProjectId();
+                return SecretManagerServiceClient.Create();
+            }
+            if (credential is ServiceAccountCredential sac) { this.ProjectId = projectId ?? sac.ProjectId ?? Helpers.GetProjectId(); }
+            else { this.ProjectId = projectId ?? Helpers.GetProjectId(); }
+
             var builder = new SecretManagerServiceClientBuilder
             {
                 TokenAccessMethod = credential.GetAccessTokenForRequestAsync
@@ -35,14 +43,14 @@ namespace GCP.Extensions.Configuration.SecretManager
             this.ListFilter = secretListFilter;
 
             _googleCredential = googleCredential ?? GoogleCredential.GetApplicationDefault();
-            _serviceAccountCredential = _googleCredential.UnderlyingCredential as ServiceAccountCredential;
 
-            this.ProjectId = projectId ?? _serviceAccountCredential.ProjectId;
-            this.SecretMangerClient = BuildClient(_serviceAccountCredential);
+            this.SecretMangerClient = BuildClient(_googleCredential.UnderlyingCredential, projectId);
         }
 
         public override void Load()
         {
+            if (string.IsNullOrWhiteSpace(ProjectId)) { throw new System.ArgumentOutOfRangeException("ProjectId could not be determined from environment and no override specified."); }
+
             ProjectName projectName = new ProjectName(ProjectId);
             ListSecretsRequest request = new ListSecretsRequest() { ParentAsProjectName = projectName, Filter = (this.ListFilter ?? string.Empty) };
             var secrets = this.SecretMangerClient.ListSecrets(request);
