@@ -6,11 +6,17 @@ using Google.Api.Gax.ResourceNames;
 
 namespace GCP.Extensions.Configuration.SecretManager
 {
+    /// <summary>Options for the configuration of the GcpKeyValueSecretsConfigurationProvider</summary>
     public class GcpKeyValueSecretOptions {
+    /// <summary>(optinal) the GoogleCredential to use.</summary>
         public GoogleCredential GoogleCredential {get;set;}
+    /// <summary>(optional) the SecretManagerServiceClient to use. if specified GoogleCredential is ignored.</summary>
         public SecretManagerServiceClient SecretMangerClient { get; set; }
+    /// <summary>(optional) a prefix to use in filtering the list of secret names.</summary>
         public string SecretNamePrefix { get; set; }
+    /// <summary>(optional) the ProjectId. if ommited, ProjectId will be dirived from Credential or Environment</summary>
         public string ProjectId { get; set; }
+    /// <summary>(default: true) whether to keep or remove the prefix from the configuration key name.</summary>
         public bool StripPrefixFromKey {get;set;} = true;
     }
 

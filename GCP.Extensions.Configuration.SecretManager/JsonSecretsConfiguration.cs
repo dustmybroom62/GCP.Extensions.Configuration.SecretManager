@@ -7,10 +7,15 @@ using Google.Api.Gax.ResourceNames;
 
 namespace GCP.Extensions.Configuration.SecretManager
 {
+    /// <summary>Options for configuration of the GCPJsonSecretsConfigurationProvider</summary>
     public class GcpJsonSecretOptions {
+    /// <summary>(optinal) the GoogleCredential to use.</summary>
         public GoogleCredential GoogleCredential {get;set;}
+    /// <summary>(optional) the SecretManagerServiceClient to use. if specified GoogleCredential is ignored.</summary>
         public SecretManagerServiceClient SecretMangerClient { get; set; }
+    /// <summary>(optional) the ProjectId. if ommited, ProjectId will be dirived from Credential or Environment</summary>
         public string ProjectId { get; set; }
+    /// <summary>(optional) a filter for the secrets list. filter rules: https://cloud.google.com/secret-manager/docs/filtering</summary>
         public string ListFilter { get; set; }
     }
 

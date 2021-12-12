@@ -10,6 +10,8 @@ When running outside cloud:
 
 Set ProjectId value to over-ride value from GoogleCredential, inside or outside of cloud.
 
+Multi-level Key support. Double underscore characters [__] in secret name will be replaced by configuration key path separator (colon [:])
+
 > Release Notes (v3.1.2)
 > 1. Added tags for JSON and KeyValue
 > 2. Fixed NULL reference error when GoogleCredential.UnderlyingCredential is not ServiceAccountCredential
@@ -68,4 +70,28 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
             webBuilder.UseStartup<Startup>();
         });
 
+```
+---
+```
+        // use your own SecretManagerServiceClient
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((hostContext, builder) =>
+                {
+                   var config = builder.Build();
+                   SecretManagerServiceClient client = BuildServiceClient(config);
+                   builder.AddGcpJsonSecrets(options => {
+                       options.ListFilter = "name:servicename_appsettings_";
+                       options.SecretMangerClient = client;
+                   });
+                   builder.AddGcpKeyValueSecrets(options => {
+                       options.SecretNamePrefix = "keyname";
+                       options.StripPrefixFromKey = false;
+                       options.SecretMangerClient = client;
+                   });
+                })
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
 ```
