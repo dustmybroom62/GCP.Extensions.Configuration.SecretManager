@@ -7,23 +7,29 @@ using Google.Api.Gax.ResourceNames;
 
 namespace GCP.Extensions.Configuration.SecretManager
 {
+    /// <summary>Options for configuration of the GCPJsonSecretsConfigurationProvider</summary>
+    public class GcpJsonSecretOptions {
+    /// <summary>(optinal) the GoogleCredential to use.</summary>
+        public GoogleCredential GoogleCredential {get;set;}
+    /// <summary>(optional) the SecretManagerServiceClient to use. if specified GoogleCredential is ignored.</summary>
+        public SecretManagerServiceClient SecretMangerClient { get; set; }
+    /// <summary>(optional) the ProjectId. if ommited, ProjectId will be dirived from Credential or Environment</summary>
+        public string ProjectId { get; set; }
+    /// <summary>(optional) a filter for the secrets list. filter rules: https://cloud.google.com/secret-manager/docs/filtering</summary>
+        public string ListFilter { get; set; }
+    }
+
     public class GcpJsonSecretsConfigurationProvider : JsonStreamConfigurationProvider
     {
-        private readonly GoogleCredential _googleCredential;
-        private readonly ServiceAccountCredential _serviceAccountCredential;
+        private readonly GcpJsonSecretOptions _options;
 
-        public SecretManagerServiceClient SecretMangerClient { get; set; }
-        public string ListFilter { get; set; }
-        public string ProjectId { get; set; }
-
-
-        internal SecretManagerServiceClient BuildClient(ICredential credential, string projectId) {
+        internal SecretManagerServiceClient BuildClient(ICredential credential) {
             if (null == credential) {
-                this.ProjectId = projectId ?? Helpers.GetProjectId();
+                _options.ProjectId ??= Helpers.GetProjectId();
                 return SecretManagerServiceClient.Create();
             }
-            if (credential is ServiceAccountCredential sac) { this.ProjectId = projectId ?? sac.ProjectId ?? Helpers.GetProjectId(); }
-            else { this.ProjectId = projectId ?? Helpers.GetProjectId(); }
+            if (credential is ServiceAccountCredential sac) { _options.ProjectId ??= sac.ProjectId ?? Helpers.GetProjectId(); }
+            else { _options.ProjectId ??= Helpers.GetProjectId(); }
 
             var builder = new SecretManagerServiceClientBuilder
             {
@@ -38,22 +44,22 @@ namespace GCP.Extensions.Configuration.SecretManager
             return result;
         }
 
-        public GcpJsonSecretsConfigurationProvider(GcpJsonSecretsConfigurationSource source, string secretListFilter, GoogleCredential googleCredential, string projectId) : base(source)
-        {
-            this.ListFilter = secretListFilter;
-
-            _googleCredential = googleCredential ?? GoogleCredential.GetApplicationDefault();
-
-            this.SecretMangerClient = BuildClient(_googleCredential.UnderlyingCredential, projectId);
+        public GcpJsonSecretsConfigurationProvider(GcpJsonSecretsConfigurationSource source, GcpJsonSecretOptions options) : base(source) {
+            if (null == options) { throw new System.ArgumentNullException(nameof(options)); }
+            _options = options;
+            if (null == _options.SecretMangerClient) {
+                _options.GoogleCredential ??= GoogleCredential.GetApplicationDefault();
+                _options.SecretMangerClient = BuildClient(_options.GoogleCredential.UnderlyingCredential);
+            }
         }
 
         public override void Load()
         {
-            if (string.IsNullOrWhiteSpace(ProjectId)) { throw new System.ArgumentOutOfRangeException("ProjectId could not be determined from environment and no override specified."); }
+            if (string.IsNullOrWhiteSpace(_options.ProjectId)) { throw new System.ArgumentOutOfRangeException("ProjectId could not be determined from environment and no override specified."); }
 
-            ProjectName projectName = new ProjectName(ProjectId);
-            ListSecretsRequest request = new ListSecretsRequest() { ParentAsProjectName = projectName, Filter = (this.ListFilter ?? string.Empty) };
-            var secrets = this.SecretMangerClient.ListSecrets(request);
+            ProjectName projectName = new ProjectName(_options.ProjectId);
+            ListSecretsRequest request = new ListSecretsRequest() { ParentAsProjectName = projectName, Filter = (_options.ListFilter ?? string.Empty) };
+            var secrets = _options.SecretMangerClient.ListSecrets(request);
 
             var secret = secrets.FirstOrDefault();
             if (null == secret) { return; }
@@ -61,11 +67,11 @@ namespace GCP.Extensions.Configuration.SecretManager
             ListSecretVersionsRequest versionsRequest = new ListSecretVersionsRequest() {
                 Filter = Helpers.FilterVersions_Enabled, ParentAsSecretName = secret.SecretName
             };
-            var versions = this.SecretMangerClient.ListSecretVersions(versionsRequest).OrderByDescending(v => v.CreateTime);
+            var versions = _options.SecretMangerClient.ListSecretVersions(versionsRequest).OrderByDescending(v => v.CreateTime);
             var ver = versions.FirstOrDefault();
             if (null == ver) { return; }
 
-            var secretVersion = this.SecretMangerClient.AccessSecretVersion(ver.SecretVersionName);
+            var secretVersion = _options.SecretMangerClient.AccessSecretVersion(ver.SecretVersionName);
             System.IO.Stream stream = new System.IO.MemoryStream(secretVersion?.Payload.Data.ToByteArray());
             base.Load(stream);
         }
@@ -73,20 +79,24 @@ namespace GCP.Extensions.Configuration.SecretManager
 
     public class GcpJsonSecretsConfigurationSource : JsonStreamConfigurationSource
     {
-        private readonly GoogleCredential _googleCredential;
-        private readonly string _listFilter;
-        private readonly string _projectId;
+        private GcpJsonSecretOptions _options;
 
         public GcpJsonSecretsConfigurationSource(string listFilter = null, GoogleCredential googleCredential = null, string projectId = null)
         {
-            _googleCredential = googleCredential;
-            _listFilter = listFilter;
-            _projectId = projectId;
+            _options = new GcpJsonSecretOptions();
+            _options.GoogleCredential = googleCredential;
+            _options.ListFilter = listFilter;
+            _options.ProjectId = projectId;
+        }
+
+        public GcpJsonSecretsConfigurationSource(GcpJsonSecretOptions options) {
+            if (null == options) { throw new System.ArgumentNullException(nameof(options)); }
+            _options = options;
         }
 
         public override IConfigurationProvider Build(IConfigurationBuilder builder)
         {
-            return new GcpJsonSecretsConfigurationProvider(this, _listFilter, _googleCredential, _projectId);
+            return new GcpJsonSecretsConfigurationProvider(this, _options);
         }
     }
 
@@ -96,6 +106,14 @@ namespace GCP.Extensions.Configuration.SecretManager
             , GoogleCredential googleCredential = null, string projectId = null)
         {
             GcpJsonSecretsConfigurationSource source = new GcpJsonSecretsConfigurationSource(listFilter, googleCredential, projectId);
+            return builder.Add(source);
+        }
+
+        public static IConfigurationBuilder AddGcpJsonSecrets (this IConfigurationBuilder builder, System.Action<GcpJsonSecretOptions> options) {
+            if (null == options) { throw new System.ArgumentNullException(nameof(options)); }
+            GcpJsonSecretOptions configOptions = new GcpJsonSecretOptions();
+            options(configOptions);
+            GcpJsonSecretsConfigurationSource source = new GcpJsonSecretsConfigurationSource(configOptions);
             return builder.Add(source);
         }
     }
