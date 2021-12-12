@@ -10,6 +10,12 @@ When running outside cloud:
 
 Set ProjectId value to over-ride value from GoogleCredential, inside or outside of cloud.
 
+> Release Notes (v3.1.2)
+> 1. Added tags for JSON and KeyValue
+> 2. Fixed NULL reference error when GoogleCredential.UnderlyingCredential is not ServiceAccountCredential
+> 3. For KeyValue type secrets, made "strip prefix from key" optional (default is true for backwards compatability).
+> 4. Added Action type extension method over-rides.
+
 > Update (v3.1.1) ProjectId, when not specified, is auto-populated from:
 > 1. ServiceAccountCredential
 > 2. The GCP API ( Google.Api.Gax.Platform.Instance().ProjectId )  
