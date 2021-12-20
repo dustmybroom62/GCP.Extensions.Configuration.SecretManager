@@ -77,7 +77,7 @@ namespace GCP.Extensions.Configuration.SecretManager
 
             foreach (var secret in secrets)
             {
-                if (!((null != prefix) || secret.SecretName.SecretId.ToLower().StartsWith(prefix))) { continue; }
+                if ( (!string.IsNullOrEmpty(prefix)) && (!secret.SecretName.SecretId.ToLower().StartsWith(prefix)) ) { continue; }
 
                 ListSecretVersionsRequest versionsRequest = new ListSecretVersionsRequest() {
                     Filter = Helpers.FilterVersions_Enabled, ParentAsSecretName = secret.SecretName
