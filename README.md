@@ -12,6 +12,9 @@ Set ProjectId value to over-ride value from GoogleCredential, inside or outside 
 
 Multi-level Key support. Double underscore characters [__] in secret name will be replaced by configuration key path separator (colon [:])
 
+> Release Notes (v3.1.3)
+> 1. Fixed "value can not be Null or empty" error in KeyValue provider Load() method when prefix is Null.
+
 > Release Notes (v3.1.2)
 > 1. Added tags for JSON and KeyValue
 > 2. Fixed NULL reference error when GoogleCredential.UnderlyingCredential is not ServiceAccountCredential
