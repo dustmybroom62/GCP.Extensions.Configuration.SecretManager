@@ -52,7 +52,7 @@ namespace GCP.Extensions.Configuration.SecretManager
             if (string.IsNullOrEmpty(_options.SecretNamePrefix)) { return value; }
             if (_options.StripPrefixFromKey) {
                 int prefixLen = _options.SecretNamePrefix.Length;
-                if (prefixLen < (value?.Length ?? 0)) { return value[prefixLen..]; }
+                if (prefixLen < (value?.Length ?? 0)) { return value.Substring(prefixLen); }
             }
             return value;
         }
