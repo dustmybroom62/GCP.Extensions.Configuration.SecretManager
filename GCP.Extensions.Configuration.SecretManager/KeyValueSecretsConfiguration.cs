@@ -22,7 +22,7 @@ namespace GCP.Extensions.Configuration.SecretManager
 
     public class GcpKeyValueSecretsConfigurationProvider : ConfigurationProvider
     {
-        private GcpKeyValueSecretOptions _options;
+        private readonly GcpKeyValueSecretOptions _options;
 
         internal SecretManagerServiceClient BuildClient(ICredential credential)
         {
@@ -36,7 +36,7 @@ namespace GCP.Extensions.Configuration.SecretManager
 
             var builder = new SecretManagerServiceClientBuilder
             {
-                TokenAccessMethod = credential.GetAccessTokenForRequestAsync
+                Credential = credential
             };
             return builder.Build();
         }
@@ -58,8 +58,7 @@ namespace GCP.Extensions.Configuration.SecretManager
         }
 
         public GcpKeyValueSecretsConfigurationProvider(GcpKeyValueSecretOptions options) {
-            if (null == options) { throw new System.ArgumentNullException(nameof(options)); }
-            _options = options;
+			      _options = options ?? throw new System.ArgumentNullException(nameof(options));
             if (null == _options.SecretMangerClient) {
                 _options.GoogleCredential ??= GoogleCredential.GetApplicationDefault();
                 _options.SecretMangerClient = BuildClient(_options.GoogleCredential.UnderlyingCredential);
@@ -97,19 +96,20 @@ namespace GCP.Extensions.Configuration.SecretManager
 
     public class GcpKeyValueSecretsConfigurationSource : IConfigurationSource
     {
-        private GcpKeyValueSecretOptions _options;
+        private readonly GcpKeyValueSecretOptions _options;
 
         public GcpKeyValueSecretsConfigurationSource(string secretNamePrefix = null, GoogleCredential googleCredential = null, string projectId = null)
         {
-            _options = new GcpKeyValueSecretOptions();
-            _options.GoogleCredential = googleCredential;
-            _options.SecretNamePrefix = secretNamePrefix;
-            _options.ProjectId = projectId;
-        }
+			    _options = new GcpKeyValueSecretOptions
+			    {
+				    GoogleCredential = googleCredential,
+				    SecretNamePrefix = secretNamePrefix,
+				    ProjectId = projectId
+			    };
+		    }
 
         public GcpKeyValueSecretsConfigurationSource(GcpKeyValueSecretOptions options) {
-            if (null == options) { throw new System.ArgumentNullException(nameof(options)); }
-            _options = options;
+			    _options = options ?? throw new System.ArgumentNullException(nameof(options));
         }
 
         public IConfigurationProvider Build(IConfigurationBuilder builder)

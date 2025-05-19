@@ -1,0 +1,9 @@
+{
+    "setting01": 75,
+    "setting02": "seventy six",
+    "email": {
+        "host": "test.com",
+        "port": 25,
+        "from": "noreply@test.com"
+    }
+}
