@@ -27,26 +27,25 @@ namespace GCP.Extensions.Configuration.SecretManager.Test
         {
             _testSecrets = new List<Secret>
             {
-                new Secret { SecretName = new SecretName(ProjectId, SecretId01) }
+                new() { SecretName = new SecretName(ProjectId, SecretId01) }
             };
 
             _pagedSecretResponse = new PagedEnumerableHelper<ListSecretsResponse, Secret>(_testSecrets);
 
             _testVersions = new List<SecretVersion>
             {
-                new SecretVersion { State = SecretVersion.Types.State.Enabled, Name = (new SecretVersionName(ProjectId, SecretId01, "V1")).ToString() }
+                new() { State = SecretVersion.Types.State.Enabled, Name = (new SecretVersionName(ProjectId, SecretId01, "V1")).ToString() }
             };
 
             _pagedVersionResponse = new PagedEnumerableHelper<ListSecretVersionsResponse, SecretVersion>(_testVersions);
 
             _mockClient = new Mock<SecretManagerServiceClient>();
-
         }
 
         [TestMethod]
         public void AddGcpKeyValueSecrets_NoArgs()
         {
-            Mock<IConfigurationBuilder> builder = new Mock<IConfigurationBuilder>();
+            Mock<IConfigurationBuilder> builder = new();
             KeyValueConfigurationExtensions.AddGcpKeyValueSecrets(builder.Object);
 
             builder.Verify(x => x.Add(It.IsAny<GcpKeyValueSecretsConfigurationSource>()), Times.Once());
@@ -55,7 +54,7 @@ namespace GCP.Extensions.Configuration.SecretManager.Test
         [TestMethod]
         public void AddGcpKeyValueSecrets_Arg_ListFilter()
         {
-            Mock<IConfigurationBuilder> builder = new Mock<IConfigurationBuilder>();
+            Mock<IConfigurationBuilder> builder = new();
             KeyValueConfigurationExtensions.AddGcpKeyValueSecrets(builder.Object, "filter");
 
             builder.Verify(x => x.Add(It.IsAny<GcpKeyValueSecretsConfigurationSource>()), Times.Once());
@@ -64,11 +63,11 @@ namespace GCP.Extensions.Configuration.SecretManager.Test
         [TestMethod]
         public void AddGcpKeyValueSecrets_Arg_GoogleCred()
         {
-            Mock<IConfigurationBuilder> builder = new Mock<IConfigurationBuilder>();
-            ServiceAccountCredential.Initializer serviceAccountInit = new ServiceAccountCredential.Initializer("id") {
+            Mock<IConfigurationBuilder> builder = new();
+            ServiceAccountCredential.Initializer serviceAccountInit = new("id") {
                 Key = System.Security.Cryptography.RSA.Create()
             };
-            ServiceAccountCredential serviceAccountCredential = new ServiceAccountCredential(serviceAccountInit);
+            ServiceAccountCredential serviceAccountCredential = new(serviceAccountInit);
             GoogleCredential googleCred = GoogleCredential.FromServiceAccountCredential(serviceAccountCredential);
             //Mock<GoogleCredential> googleCred = new Mock<GoogleCredential>();
             KeyValueConfigurationExtensions.AddGcpKeyValueSecrets(builder.Object, null, googleCred);
@@ -79,7 +78,7 @@ namespace GCP.Extensions.Configuration.SecretManager.Test
         [TestMethod]
         public void AddGcpKeyValueSecrets_Arg_ProjectId()
         {
-            Mock<IConfigurationBuilder> builder = new Mock<IConfigurationBuilder>();
+            Mock<IConfigurationBuilder> builder = new();
             KeyValueConfigurationExtensions.AddGcpKeyValueSecrets(builder.Object, null, null, ProjectId);
 
             builder.Verify(x => x.Add(It.IsAny<GcpKeyValueSecretsConfigurationSource>()), Times.Once());
@@ -88,7 +87,7 @@ namespace GCP.Extensions.Configuration.SecretManager.Test
         [TestMethod]
         public void AddGcpKeyValueSecrets_Arg_Action()
         {
-            Mock<IConfigurationBuilder> builder = new Mock<IConfigurationBuilder>();
+            Mock<IConfigurationBuilder> builder = new();
             KeyValueConfigurationExtensions.AddGcpKeyValueSecrets(builder.Object, options => { });
 
             builder.Verify(x => x.Add(It.IsAny<GcpKeyValueSecretsConfigurationSource>()), Times.Once());
@@ -97,14 +96,14 @@ namespace GCP.Extensions.Configuration.SecretManager.Test
         [TestMethod]
         public void GcpKeyValueSecretsConfigurationSource_Build()
         {
-            ServiceAccountCredential.Initializer serviceAccountInit = new ServiceAccountCredential.Initializer("id")
+            ServiceAccountCredential.Initializer serviceAccountInit = new("id")
             {
                 Key = System.Security.Cryptography.RSA.Create()
             };
-            ServiceAccountCredential serviceAccountCredential = new ServiceAccountCredential(serviceAccountInit);
+            ServiceAccountCredential serviceAccountCredential = new(serviceAccountInit);
             GoogleCredential googleCred = GoogleCredential.FromServiceAccountCredential(serviceAccountCredential);
-            GcpKeyValueSecretsConfigurationSource source = new GcpKeyValueSecretsConfigurationSource(null, googleCred, null);
-            Mock<IConfigurationBuilder> builder = new Mock<IConfigurationBuilder>();
+            GcpKeyValueSecretsConfigurationSource source = new(null, googleCred, null);
+            Mock<IConfigurationBuilder> builder = new();
             IConfigurationProvider provider = source.Build(builder.Object);
             Assert.IsNotNull(provider);
             Assert.IsInstanceOfType(provider, typeof(GcpKeyValueSecretsConfigurationProvider));
@@ -117,17 +116,17 @@ namespace GCP.Extensions.Configuration.SecretManager.Test
             string value = "value1";
             _mockClient.Setup(x => x.ListSecrets(It.IsAny<ListSecretsRequest>(), null)).Returns(_pagedSecretResponse);
             _mockClient.Setup(x => x.ListSecretVersions(It.IsAny<ListSecretVersionsRequest>(), null)).Returns(_pagedVersionResponse);
-            AccessSecretVersionResponse response = new AccessSecretVersionResponse() {
+            AccessSecretVersionResponse response = new() {
                 Payload = new SecretPayload() { Data = Google.Protobuf.ByteString.CopyFromUtf8(value) }
             };
             _mockClient.Setup(x => x.AccessSecretVersion(It.IsAny<SecretVersionName>(), null)).Returns(response);
 
-            GcpKeyValueSecretOptions options = new GcpKeyValueSecretOptions
-            {
+            GcpKeyValueSecretOptions options = new()
+						{
                 ProjectId = ProjectId,
                 SecretMangerClient = _mockClient.Object
             };
-            GcpKeyValueSecretsConfigurationProvider provider = new GcpKeyValueSecretsConfigurationProvider(options);
+            GcpKeyValueSecretsConfigurationProvider provider = new(options);
             provider.Load();
 
             Assert.IsTrue(provider.TryGet(key, out string configValue));
