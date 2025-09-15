@@ -10,5 +10,7 @@ public class AppConfig
 {
     public int Setting01 { get; set; }
     public string Setting02 { get; set; }
-    public EmailConfig Email { get; set; } = new ();
+    public string Key01 { get; set; }
+    public string Key02 { get; set; }
+    public EmailConfig Email { get; set; } = new();
 }
