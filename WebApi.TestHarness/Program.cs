@@ -22,6 +22,7 @@ namespace WebApi.TestHarness
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     config.AddGcpJsonSecrets("appconfig01");
+                    config.AddGcpKeyValueSecrets("keyvalues_");
                 })
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
