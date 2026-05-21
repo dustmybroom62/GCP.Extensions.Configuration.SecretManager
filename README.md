@@ -12,6 +12,10 @@ Set ProjectId value to over-ride value from GoogleCredential, inside or outside 
 
 Multi-level Key support. Double underscore characters [__] in secret name will be replaced by configuration key path separator (colon [:])
 
+> Release Notes (v6.2.7)
+> 1. Updated Google.Cloud.SecretManager.V1 dependency to version 2.7.0
+> 2. Updated dependency Microsoft.Extensions.Configuration.Json to version 10.0.7
+
 > Release Notes (v6.2.6)
 > 1. Updated Google.Cloud.SecretManager.V1 dependency to version 2.6.0
 
