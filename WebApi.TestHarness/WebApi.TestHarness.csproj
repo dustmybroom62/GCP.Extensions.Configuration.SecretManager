@@ -11,7 +11,7 @@
  
 
   <ItemGroup>
-    <PackageReference Include="GCP.Extensions.Configuration.SecretManager" Version="6.2.7" />
+    <PackageReference Include="GCP.Extensions.Configuration.SecretManager" Version="8.2.7" />
   </ItemGroup>
 
 </Project>
